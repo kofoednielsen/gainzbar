@@ -77,22 +77,6 @@ while True:
         x.start()
         motion_images = []
 
-    # gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    # gray = cv2.GaussianBlur(gray, (21, 21), 0)
-    # if background is None:
-    #     background = gray
-    #     continue
-
-    # dif = cv2.absdiff(gray, background)
-    # thresh = cv2.threshold(dif, 30, 255, cv2.THRESH_BINARY)[1]
-    # d = sum(sum(dif))
-    # print(d)
-    # #cv2.imshow('dif', thresh)
-    stop = time.time()
-    duration = stop-start
-
-    #print(f'time: {duration}')
-    # show the output frame
     key = cv2.waitKey(1) & 0xFF
 
     # if the `q` key was pressed, break from the loop

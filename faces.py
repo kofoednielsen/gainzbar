@@ -2,6 +2,7 @@ from facenet_pytorch import MTCNN, InceptionResnetV1
 import numpy as np
 import torch
 from glob import glob
+from os.path import basename, splitext
 from PIL import Image, ImageDraw
 
 
@@ -15,18 +16,12 @@ def get_emb(img):
     # Calculate embedding (unsqueeze to add batch dimension)
     return resnet(img_cropped.unsqueeze(0))
 
-
-asbjorn = get_emb(Image.open('asbjorn.jpg'))
-niels = get_emb(Image.open('niels.png'))
-adrian = get_emb(Image.open('adrian.jpg'))
-rasmus = get_emb(Image.open('rasmus.jpg'))
-
-faces = [
-            {'name': 'Asbjørn', 'emb': asbjorn},
-            {'name': 'Niels', 'emb': niels},
-            {'name': 'Adrian', 'emb': adrian},
-            {'name': 'Rasmus', 'emb': rasmus},
-        ]
+filenames = glob('faces/*')
+# create an object for every image in the faces dir.
+# embeddings are taken from the image
+# and the name of the person is taken from the filename
+faces = [{'name': splitext(basename(f))[0],
+          'emb': get_emb(Image.open(f))} for f in filenames]
 
 def who_is(frame):
     """ Return the person which its most likely to be
