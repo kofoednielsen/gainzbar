@@ -61,7 +61,7 @@ while True:
     if not ret:
         print('skip')
         continue
-    frame = imutils.resize(frame, width=(128))
+    frame = imutils.resize(frame, width=(160))
     
     fg = fgbg.apply(frame)
     fg = cv2.morphologyEx(fg, cv2.MORPH_OPEN, kernel)
@@ -78,9 +78,9 @@ while True:
     # After half a second of no motion, if there was motion_images then do
     if time.time()-last_motion_time > 0.5 and len(motion_images) > 0:
         print('pullup!')
-        #x = threading.Thread(target=face_detection, args=(motion_images,))
-        #x.start()
-        face_detection(motion_images)
+        x = threading.Thread(target=face_detection, args=(motion_images,))
+        x.start()
+        #face_detection(motion_images)
         motion_images = []
 
     key = cv2.waitKey(1) & 0xFF
