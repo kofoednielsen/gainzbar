@@ -1,6 +1,7 @@
 from facenet_pytorch import MTCNN, InceptionResnetV1
 import numpy as np
 import torch
+from cv2 import imwrite
 from glob import glob
 from os.path import basename, splitext
 from PIL import Image, ImageDraw
@@ -37,6 +38,7 @@ def who_is(frame):
     dists = [torch.dist(test, face['emb']) for face in faces]
     min_dist = min(dists)
     min_dist_index = np.argmin(dists)
+    imwrite(f'{faces[min_dist_index]["name"]}/{round(float(min_dist),3)}.jpg', frame)
     return (True, min_dist, faces[min_dist_index]['name'])
     
 

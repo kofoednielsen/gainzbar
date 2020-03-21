@@ -2,7 +2,6 @@
 # python detect_faces_video.py --prototxt deploy.prototxt.txt --model res10_300x300_ssd_iter_140000.caffemodel
 
 # import the necessary packages
-from imutils.video import VideoStream
 from pathlib import Path
 from faces import who_is
 from tqdm import tqdm
@@ -45,7 +44,10 @@ kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(3,3))
 
 # initialize the video stream and allow the cammera sensor to warmup
 print("[INFO] starting video stream...")
-vs = VideoStream(src='http://192.168.1.80:8080/video').start()
+vs = cv2.VideoCapture()
+while not vs.open('http://192.168.1.80:8080/video'):
+    pass
+
 #vs = VideoStream(src=0).start()
 background = None
 
@@ -55,9 +57,12 @@ motion_images = []
 # loop over the frames from the video stream
 while True:
     start = time.time()
-    frame = vs.read()
-
-    frame = imutils.resize(frame, width=128)
+    (ret, frame) = vs.read()
+    if not ret:
+        print('skip')
+        continue
+    frame = imutils.resize(frame, width=(128))
+    
     fg = fgbg.apply(frame)
     fg = cv2.morphologyEx(fg, cv2.MORPH_OPEN, kernel)
     # convert to 1d array of all pixels
@@ -73,8 +78,9 @@ while True:
     # After half a second of no motion, if there was motion_images then do
     if time.time()-last_motion_time > 0.5 and len(motion_images) > 0:
         print('pullup!')
-        x = threading.Thread(target=face_detection, args=(motion_images,))
-        x.start()
+        #x = threading.Thread(target=face_detection, args=(motion_images,))
+        #x.start()
+        face_detection(motion_images)
         motion_images = []
 
     key = cv2.waitKey(1) & 0xFF
