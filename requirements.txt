@@ -3,3 +3,4 @@ imutils
 numpy
 requests
 torch
+torchvision
