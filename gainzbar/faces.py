@@ -55,8 +55,8 @@ def check_faces(frames):
         faces = resnet(torch.stack([f['face'] for f in cropped_faces]).to(device))
         face_objects = [{'frame': cp['frame'], 'emb': faces[i]} for i, cp in enumerate(cropped_faces)]
         compare_faces = [compare_face(face) for face in face_objects]
-        for face in compare_faces:
-            #imwrite(f'last_pullup/{face["name"]}-{round(float(face["dist"]),3)}.jpg', face['frame'])
+        #for face in compare_faces:
+        #   imwrite(f'last_pullup/{face["name"]}-{round(float(face["dist"]),3)}.jpg', face['frame'])
         print('saved faces to last_pullup/')
         return compare_faces
     return []
