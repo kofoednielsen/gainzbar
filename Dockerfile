@@ -8,6 +8,6 @@ COPY ./requirements.txt /app/
 WORKDIR app
 run python3 -m pip install -r requirements.txt
 COPY ./gainzbar /app
-COPY ./faces /app/
+COPY ./faces/ /app/faces/
 
 CMD python3 ai.py
