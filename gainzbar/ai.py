@@ -45,6 +45,7 @@ def face_detection(motion_images):
         if face_best['dist'] < 0.90:
             ping_niels(face_best['name'])
 
+
 # movemen detection stuff
 fgbg = cv2.createBackgroundSubtractorMOG2()
 kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(3,3))
@@ -65,8 +66,10 @@ motion_images = []
 while True:
     (ret, frame) = vs.read()
     if not ret:
-        print('network broke')
-        exit(0)
+        print('network broke, reconnecting!')
+        vs.open('http://192.168.1.80:8080/video')
+        continue
+            
     frame = imutils.resize(frame, width=(160))
     
     fg = fgbg.apply(frame)
