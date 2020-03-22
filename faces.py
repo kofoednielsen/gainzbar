@@ -1,14 +1,16 @@
 from facenet_pytorch import MTCNN, InceptionResnetV1
 import numpy as np
 import torch
+from time import time
 from cv2 import imwrite
-from glob import glob
 from os.path import basename, splitext
+from pathlib import Path
+from os import getenv
 from PIL import Image, ImageDraw
 
 
 resnet = InceptionResnetV1(pretrained='vggface2').eval()
-mtcnn = MTCNN(image_size=160, margin=0, min_face_size=20,
+mtcnn = MTCNN(image_size=160, margin=0, min_face_size=80,
               thresholds=[0.6, 0.7, 0.7], factor=0.709, post_process=True)
 
 
@@ -18,42 +20,46 @@ def get_emb(img):
     # Calculate embedding (unsqueeze to add batch dimension)
     return resnet(img_cropped.unsqueeze(0))
 
-filenames = glob('faces/*')
 # create an object for every image in the faces dir.
 # embeddings are taken from the image
 # and the name of the person is taken from the filename
-faces = [{'name': splitext(basename(f))[0],
-          'emb': get_emb(Image.open(f))} for f in filenames]
 
-def who_is(frame):
+known_faces = []
+folders = Path('faces').glob('*')
+for folder in folders:
+    name = basename(folder)
+    imgs = list(folder.glob('*'))
+    print(f'{name}: {len(imgs)}')
+    faces = [{'name': name,
+              'emb': get_emb(Image.open(f))} for f in imgs]
+    known_faces = known_faces + faces
+
+def check_faces(frames):
     """ Return the person which its most likely to be
-        and how likely it is to be them
-        returns: got_face_bool, likelyhood(lower is better), name """
-    # try to get embeddings.
-    # might fail as it might not
-    # be able to detect a face
-    try:
-        test = get_emb(frame)
-    except Exception:
-        return (False, 'none', 10)
-    dists = [torch.dist(test, face['emb']) for face in faces]
-    min_dist = min(dists)
-    min_dist_index = np.argmin(dists)
-    imwrite(f'{faces[min_dist_index]["name"]}/{round(float(min_dist),3)}.jpg', frame)
-    return (True, min_dist, faces[min_dist_index]['name'])
+        and how likely it is to be them.
+        returns: (got_face_bool, likelyhood(lower is better), name) """
+    # crop out faces from the images
+    possible_cropped_faces, probs = mtcnn(frames, return_prob=True)
+    print(f'Processed {len(possible_cropped_faces)} images')
+
+    # filter out the images that didnt have a face in them
+    cropped_faces = list(filter(lambda f: f['face'] is not None,
+                                [{'frame': frames[i],
+                                  'face': pf,
+                                  'prob': probs[i]} for i, pf in enumerate(possible_cropped_faces)]))
+    print(f'Found {len(cropped_faces)} faces')
+    if len(cropped_faces) > 0:
+        faces = resnet(torch.stack([f['face'] for f in cropped_faces]))
+        face_objects = [{'frame': cp['frame'], 'emb': faces[i]} for i, cp in enumerate(cropped_faces)]
+        return [compare_face(face) for face in face_objects]
+    return []
     
 
-if __name__ == '__main__':
-    asbjorn = get_emb('asbjorn.jpg')
-    niels = get_emb('niels.png')
-    test_imgs = glob('asbjorn/*')
-    for img in test_imgs:
-        try:
-            test = get_emb(img)
-            da = torch.dist(test, asbjorn, p=2)
-            dn = torch.dist(test, niels, p=2)
-            print(f'asbj: {round(float(da), 3)}, niels: {round(float(dn), 3)} for img: {img}')
-        except Exception:
-            pass
-
+def compare_face(cropped_face):
+    # cacluate distance to all known faces
+    dists = [torch.dist(cropped_face['emb'], face['emb']) for face in known_faces]
+    min_dist = min(dists)
+    min_dist_index = np.argmin(dists)
+    imwrite(f'{known_faces[min_dist_index]["name"]}/{round(float(min_dist),3)}.jpg', cropped_face['frame'])
+    return {'got_face': True, 'dist': min_dist, 'name': known_faces[min_dist_index]['name']}
 

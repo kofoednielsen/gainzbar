@@ -3,8 +3,9 @@
 
 # import the necessary packages
 from pathlib import Path
-from faces import who_is
+from faces import check_faces
 from tqdm import tqdm
+from os import getenv
 from itertools import chain
 import requests
 import numpy as np
@@ -14,29 +15,37 @@ import imutils
 import time
 import cv2
 
-# construct the argument parse and parse the arguments
+PULLUP_ENDPOINT = getenv('PULLUP_ENDPOINT', 'https://us-central1-pull-ups-a9ce0.cloudfunctions.net/countPullups')
+#assert PULLUP_ENDPOINT, 'environment variable pullup_endpoint must be set.'
+
+#PULLUP_ENDPOINT_SECRET = getenv('PULLUP_ENDPOINT_SECRET')
+#assert PULLUP_ENDPOINT, 'environment variable PULLUP_ENDPOINT_SECRET must be set.'
 
 def ping_niels(name):
+    """ send http POST request to update the
+        web interface """
     headers = {
         'Content-Type': 'application/json'
     }
     data = {'name': name}
-    response = requests.post('https://us-central1-pull-ups-a9ce0.cloudfunctions.net/countPullups', headers=headers, json=data)
+    response = requests.post(PULLUP_ENDPOINT, headers=headers, json=data)
     print(response)
 
 def face_detection(motion_images):
-    faces = [who_is(f) for f in tqdm(motion_images)]
-    # get the ones that where there was a face
-    face_detections = list(filter(lambda f: f[0], faces))
-    if len(face_detections) > 0:
+    # check for faces in all motion images
+    face_checks = check_faces(motion_images)
+    # get the ones that had a face in them
+    faces = list(filter(lambda f: f['got_face'], face_checks))
+    if len(faces) > 0:
         # Get the index of the best face detections.
-        face_best_index = np.argmin([f[1] for f in face_detections])
+        # best is the lowest distance
+        face_best_index = np.argmin([face['dist'] for face in faces])
         # get the best face
-        face_best = face_detections[face_best_index]
+        face_best = faces[face_best_index]
         print(face_best)
         # threshold in case a hand looked like niels
-        if face_best[1] < 0.95:
-            ping_niels(face_best[2])
+        if face_best['dist'] < 0.90:
+            ping_niels(face_best['name'])
 
 # movemen detection stuff
 fgbg = cv2.createBackgroundSubtractorMOG2()
@@ -56,11 +65,10 @@ last_motion_time = 0
 motion_images = []
 # loop over the frames from the video stream
 while True:
-    start = time.time()
     (ret, frame) = vs.read()
     if not ret:
-        print('skip')
-        continue
+        print('network broke')
+        exit(0)
     frame = imutils.resize(frame, width=(160))
     
     fg = fgbg.apply(frame)
@@ -78,9 +86,10 @@ while True:
     # After half a second of no motion, if there was motion_images then do
     if time.time()-last_motion_time > 0.5 and len(motion_images) > 0:
         print('pullup!')
-        x = threading.Thread(target=face_detection, args=(motion_images,))
-        x.start()
-        #face_detection(motion_images)
+        start = time.time()
+        face_detection(motion_images)
+        end = time.time()
+        print(f'processing took {round(end-start, 3)}')
         motion_images = []
 
     key = cv2.waitKey(1) & 0xFF
