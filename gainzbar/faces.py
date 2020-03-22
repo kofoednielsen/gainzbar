@@ -21,7 +21,8 @@ def get_emb(img):
     # Get cropped and prewhitened image tensor
     img_cropped = mtcnn(img)
     # Calculate embedding (unsqueeze to add batch dimension)
-    return resnet(img_cropped.unsqueeze(0))
+    aligned = torch.stack(img_cropped).to(device)
+    return resnet(aligned.unsqueeze(0))
 
 # create an object for every image in the faces dir.
 # embeddings are taken from the image
