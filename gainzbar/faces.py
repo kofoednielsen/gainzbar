@@ -21,8 +21,8 @@ def get_emb(img):
     # Get cropped and prewhitened image tensor
     img_cropped = mtcnn(img)
     # Calculate embedding (unsqueeze to add batch dimension)
-    aligned = torch.stack(img_cropped).to(device)
-    return resnet(aligned.unsqueeze(0))
+    aligned = img_cropped.to(device)
+    return resnet(aligned.unsqueeze(0)).detach().cpu()
 
 # create an object for every image in the faces dir.
 # embeddings are taken from the image
@@ -53,7 +53,7 @@ def check_faces(frames):
                                   'prob': probs[i]} for i, pf in enumerate(possible_cropped_faces)]))
     print(f'Found {len(cropped_faces)} faces')
     if len(cropped_faces) > 0:
-        faces = resnet(torch.stack([f['face'] for f in cropped_faces]).to(device))
+        faces = resnet(torch.stack([f['face'] for f in cropped_faces]).to(device)).detach().cpu()
         face_objects = [{'frame': cp['frame'], 'emb': faces[i]} for i, cp in enumerate(cropped_faces)]
         compare_faces = [compare_face(face) for face in face_objects]
         #for face in compare_faces:
