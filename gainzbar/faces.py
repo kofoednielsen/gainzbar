@@ -13,7 +13,7 @@ print('Running on device: {}'.format(device))
 
 resnet = InceptionResnetV1(pretrained='vggface2').eval().to(device)
 mtcnn = MTCNN(image_size=160, margin=0, min_face_size=80,
-              thresholds=[0.6, 0.7, 0.7], factor=0.709, post_process=True
+              thresholds=[0.6, 0.7, 0.7], factor=0.709, post_process=True,
               device=device)
 
 
