@@ -4,9 +4,7 @@
 # import the necessary packages
 from pathlib import Path
 from faces import check_faces
-from tqdm import tqdm
 from os import getenv
-from itertools import chain
 import requests
 import numpy as np
 import threading
@@ -42,7 +40,7 @@ def face_detection(motion_images):
         face_best_index = np.argmin([face['dist'] for face in faces])
         # get the best face
         face_best = faces[face_best_index]
-        print(face_best)
+        print(f'Best was distance {round(float(face_best["dist"]),3)} for {face_best["name"]}')
         # threshold in case a hand looked like niels
         if face_best['dist'] < 0.90:
             ping_niels(face_best['name'])
@@ -77,7 +75,7 @@ while True:
     pixels = np.concatenate(fg, axis=0)
     # get non black
     nonblack = sum(pixels)
-    cv2.imshow('org', frame)
+    #cv2.imshow('org', frame)
     # random number i found to nicely indicate
     # a pullup happening
     if nonblack > 500000:

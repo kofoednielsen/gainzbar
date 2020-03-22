@@ -8,10 +8,13 @@ from pathlib import Path
 from os import getenv
 from PIL import Image, ImageDraw
 
+device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+print('Running on device: {}'.format(device))
 
-resnet = InceptionResnetV1(pretrained='vggface2').eval()
+resnet = InceptionResnetV1(pretrained='vggface2').eval().to(device)
 mtcnn = MTCNN(image_size=160, margin=0, min_face_size=80,
-              thresholds=[0.6, 0.7, 0.7], factor=0.709, post_process=True)
+              thresholds=[0.6, 0.7, 0.7], factor=0.709, post_process=True
+              device=device)
 
 
 def get_emb(img):
@@ -49,9 +52,13 @@ def check_faces(frames):
                                   'prob': probs[i]} for i, pf in enumerate(possible_cropped_faces)]))
     print(f'Found {len(cropped_faces)} faces')
     if len(cropped_faces) > 0:
-        faces = resnet(torch.stack([f['face'] for f in cropped_faces]))
+        faces = resnet(torch.stack([f['face'] for f in cropped_faces]).to(device))
         face_objects = [{'frame': cp['frame'], 'emb': faces[i]} for i, cp in enumerate(cropped_faces)]
-        return [compare_face(face) for face in face_objects]
+        compare_faces = [compare_face(face) for face in face_objects]
+        for face in compare_faces:
+            #imwrite(f'last_pullup/{face["name"]}-{round(float(face["dist"]),3)}.jpg', face['frame'])
+        print('saved faces to last_pullup/')
+        return compare_faces
     return []
     
 
@@ -60,6 +67,6 @@ def compare_face(cropped_face):
     dists = [torch.dist(cropped_face['emb'], face['emb']) for face in known_faces]
     min_dist = min(dists)
     min_dist_index = np.argmin(dists)
-    imwrite(f'{known_faces[min_dist_index]["name"]}/{round(float(min_dist),3)}.jpg', cropped_face['frame'])
-    return {'got_face': True, 'dist': min_dist, 'name': known_faces[min_dist_index]['name']}
+    #imwrite(f'{known_faces[min_dist_index]["name"]}/{round(float(min_dist),3)}.jpg', cropped_face['frame'])
+    return {'got_face': True, 'dist': min_dist, 'name': known_faces[min_dist_index]['name'], 'frame': cropped_face['frame']}
 

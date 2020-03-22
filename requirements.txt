@@ -1,0 +1,5 @@
+facenet-pytorch
+imutils
+numpy
+requests
+torch
