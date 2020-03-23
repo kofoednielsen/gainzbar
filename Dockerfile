@@ -17,4 +17,4 @@ run apt install -y libsm6 libxext6 libxrender-dev
 COPY ./gainzbar /app
 COPY ./faces/ /app/faces/
 
-CMD python3 ai.py
+CMD python3 gainzbar.py
